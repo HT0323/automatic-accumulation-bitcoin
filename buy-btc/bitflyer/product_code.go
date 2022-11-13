@@ -17,11 +17,11 @@ func (code ProductCode) String() string {
 	case Ethjpy:
 		return "ETH_JPY"
 	case Fxbtcjpy:
-		return "BTC_JPY"
+		return "FX_BTC_JPY"
 	case Ethbtc:
-		return "BTC_JPY"
+		return "ETH_BTC"
 	case bchbtc:
-		return "BTC_JPY"
+		return "BCH_BTC"
 	default:
 		return "BTC_JPY"
 	}
