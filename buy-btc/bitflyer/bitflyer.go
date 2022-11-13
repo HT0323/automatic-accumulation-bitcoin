@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"time"
 )
@@ -44,6 +45,37 @@ type Ticker struct {
 	Ltp             float64 `json:"ltp"`
 	Volume          float64 `json:"volume"`
 	VolumeByProduct float64 `json:"volume_by_product"`
+}
+
+// sendchildorderAPIへリクエストを投げ新規買い注文を行う
+func PlaceOrder(order *Order, apiKey, apiSecret string) (*OrderRes, error) {
+	method := "POST"
+	path := "/v1/me/sendchildorder"
+	url := baseURL + path
+
+	data, err := json.Marshal(order)
+	if err != nil {
+		return nil, err
+	}
+
+	header := getHeader(method, path, apiKey, apiSecret, data)
+
+	res, err := utils.DoHttpRequest(method, url, header, map[string]string{}, data)
+	if err != nil {
+		return nil, err
+	}
+
+	var orderRes OrderRes
+	err = json.Unmarshal(res, &orderRes)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(orderRes.ChildOrderAcceptanceId) == 0 {
+		return nil, errors.New(string(res))
+	}
+
+	return &orderRes, nil
 }
 
 // sendchildorderAPIのリクエスト情報の構造体
