@@ -46,6 +46,22 @@ type Ticker struct {
 	VolumeByProduct float64 `json:"volume_by_product"`
 }
 
+// sendchildorderAPIのリクエスト情報の構造体
+type Order struct {
+	ProductCode     string  `json:"product_code"`
+	ChildOrderType  string  `json:"child_order_type"`
+	Side            string  `json:"side"`
+	Price           float64 `json:"price"`
+	Size            float64 `json:"size"`
+	MinuteToExpires int     `json:"minute_to_expire"`
+	TimeInForce     string  `json:"time_in_force"`
+}
+
+// sendchildorderAPIのレスポンス情報の構造体
+type OrderRes struct {
+	ChildOrderAcceptanceId string `json:"child_order_acceptance_id"`
+}
+
 // リクエストのHeader情報を作成
 func getHeader(method, path, apiKey, apiSecret string, body []byte) map[string]string {
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
