@@ -2,7 +2,12 @@ package bitflyer
 
 import (
 	"buy-btc/utils"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"strconv"
+	"time"
 )
 
 const baseURL = "https://api.bitflyer.com"
@@ -39,4 +44,23 @@ type Ticker struct {
 	Ltp             float64 `json:"ltp"`
 	Volume          float64 `json:"volume"`
 	VolumeByProduct float64 `json:"volume_by_product"`
+}
+
+// リクエストのHeader情報を作成
+func getHeader(method, path, apiKey, apiSecret string, body []byte) map[string]string {
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+
+	text := timestamp + method + path + string(body)
+
+	// APISecretでsha256署名を行う
+	mac := hmac.New(sha256.New, []byte(apiSecret))
+	mac.Write([]byte(text))
+	sign := hex.EncodeToString(mac.Sum(nil))
+
+	return map[string]string{
+		"ACCESS-KEY":       apiKey,
+		"ACCESS-TIMESTAMP": timestamp,
+		"ACCESS-SIGN":      sign,
+		"Content-Type":     "application/json",
+	}
 }
