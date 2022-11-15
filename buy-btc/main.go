@@ -41,7 +41,9 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		TimeInForce:     bitflyer.Gtc.String(),
 	}
 
-	orderRes, err := bitflyer.PlaceOrder(&order, apiKey, apiSecret)
+	client := bitflyer.NewAPIClient(apiKey, apiSecret)
+
+	orderRes, err := client.PlaceOrder(&order)
 	if err != nil {
 		return getErrorResponse(err.Error()), err
 	}

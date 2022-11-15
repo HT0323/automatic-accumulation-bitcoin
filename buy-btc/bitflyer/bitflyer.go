@@ -14,6 +14,15 @@ import (
 const baseURL = "https://api.bitflyer.com"
 const productCodeKey = "product_code"
 
+type APIClient struct {
+	apiKey    string
+	apiSecret string
+}
+
+func NewAPIClient(apiKey, apiSecret string) *APIClient {
+	return &APIClient{apiKey, apiSecret}
+}
+
 // TickerAPIへリクエストを投げ板情報を取得
 func GetTicker(code ProductCode) (*Ticker, error) {
 	url := baseURL + "/v1/ticker"
@@ -48,7 +57,7 @@ type Ticker struct {
 }
 
 // sendchildorderAPIへリクエストを投げ新規買い注文を行う
-func PlaceOrder(order *Order, apiKey, apiSecret string) (*OrderRes, error) {
+func (client *APIClient) PlaceOrder(order *Order) (*OrderRes, error) {
 	method := "POST"
 	path := "/v1/me/sendchildorder"
 	url := baseURL + path
@@ -58,7 +67,7 @@ func PlaceOrder(order *Order, apiKey, apiSecret string) (*OrderRes, error) {
 		return nil, err
 	}
 
-	header := getHeader(method, path, apiKey, apiSecret, data)
+	header := client.getHeader(method, path, data)
 
 	res, err := utils.DoHttpRequest(method, url, header, map[string]string{}, data)
 	if err != nil {
@@ -95,18 +104,18 @@ type OrderRes struct {
 }
 
 // リクエストのHeader情報を作成
-func getHeader(method, path, apiKey, apiSecret string, body []byte) map[string]string {
+func (client *APIClient) getHeader(method, path string, body []byte) map[string]string {
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 
 	text := timestamp + method + path + string(body)
 
 	// APISecretでsha256署名を行う
-	mac := hmac.New(sha256.New, []byte(apiSecret))
+	mac := hmac.New(sha256.New, []byte(client.apiSecret))
 	mac.Write([]byte(text))
 	sign := hex.EncodeToString(mac.Sum(nil))
 
 	return map[string]string{
-		"ACCESS-KEY":       apiKey,
+		"ACCESS-KEY":       client.apiKey,
 		"ACCESS-TIMESTAMP": timestamp,
 		"ACCESS-SIGN":      sign,
 		"Content-Type":     "application/json",
