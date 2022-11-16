@@ -13,6 +13,21 @@ import (
 )
 
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	tickerChan := make(chan *bitflyer.Ticker)
+	errChan := make(chan error)
+	defer close(tickerChan)
+	defer close(errChan)
+
+	go bitflyer.GetTicker(tickerChan, errChan, bitflyer.Btcjpy)
+	ticker := <-tickerChan
+	err := <-errChan
+
+	if err != nil {
+		return getErrorResponse(err.Error()), err
+	}
+	//購入価格
+	buyPrice := RoundDecimal(ticker.Ltp * 0.85)
+
 	apiKey, err := getParameter("buy-btc-apikey")
 	if err != nil {
 		return getErrorResponse(err.Error()), nil
@@ -22,14 +37,6 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	if err != nil {
 		return getErrorResponse(err.Error()), nil
 	}
-
-	ticker, err := bitflyer.GetTicker(bitflyer.Btcjpy)
-	if err != nil {
-		return getErrorResponse(err.Error()), err
-	}
-
-	//購入価格
-	buyPrice := RoundDecimal(ticker.Ltp * 0.85)
 
 	order := bitflyer.Order{
 		ProductCode:     bitflyer.Btcjpy.String(),

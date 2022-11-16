@@ -24,19 +24,24 @@ func NewAPIClient(apiKey, apiSecret string) *APIClient {
 }
 
 // TickerAPIへリクエストを投げ板情報を取得
-func GetTicker(code ProductCode) (*Ticker, error) {
+func GetTicker(ch chan *Ticker, errCh chan error, code ProductCode) {
 	url := baseURL + "/v1/ticker"
 	res, err := utils.DoHttpRequest("GET", url, nil, map[string]string{productCodeKey: code.String()}, nil)
 	if err != nil {
-		return nil, err
+		ch <- nil
+		errCh <- err
+		return
 	}
 
 	var ticker Ticker
 	err = json.Unmarshal(res, &ticker)
 	if err != nil {
-		return nil, err
+		ch <- nil
+		errCh <- err
+		return
 	}
-	return &ticker, nil
+	ch <- &ticker
+	errCh <- nil
 }
 
 // TickerAPIのレスポンス情報の構造体
