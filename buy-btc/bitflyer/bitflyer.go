@@ -13,6 +13,8 @@ import (
 
 const baseURL = "https://api.bitflyer.com"
 const productCodeKey = "product_code"
+const btcMinimumAmount = 0.001
+const btcPlace = 4.0
 
 type APIClient struct {
 	apiKey    string
@@ -59,6 +61,49 @@ type Ticker struct {
 	Ltp             float64 `json:"ltp"`
 	Volume          float64 `json:"volume"`
 	VolumeByProduct float64 `json:"volume_by_product"`
+}
+
+func PlaceOrderWithParams(client *APIClient, price, size float64) (*OrderRes, error) {
+	order := Order{
+		ProductCode:     Btcjpy.String(),
+		ChildOrderType:  Limit.String(),
+		Side:            Buy.String(),
+		Price:           price,
+		Size:            size,
+		MinuteToExpires: 4320, //3days
+		TimeInForce:     Gtc.String(),
+	}
+
+	orderRes, err := client.PlaceOrder(&order)
+	if err != nil {
+		return nil, err
+	}
+
+	return orderRes, nil
+}
+
+func GetBuyLogic(strategy int) func(float64, *Ticker) (float64, float64) {
+	var logic func(float64, *Ticker) (float64, float64)
+
+	switch strategy {
+	case 1:
+		// LTPの98%の価格
+		logic = func(budget float64, t *Ticker) (float64, float64) {
+			var buyPrice, buySize float64
+			buyPrice = utils.RoundDecimal(t.Ltp * 0.985)
+			buySize = utils.CalcAmount(buyPrice, float64(budget), btcMinimumAmount, btcPlace)
+			return buyPrice, buySize
+		}
+	default:
+		// BestAskの価格
+		logic = func(budget float64, t *Ticker) (float64, float64) {
+			var buyPrice, buySize float64
+			buyPrice = utils.RoundDecimal(t.BestAsk)
+			buySize = utils.CalcAmount(buyPrice, float64(budget), btcMinimumAmount, btcPlace)
+			return buyPrice, buySize
+		}
+	}
+	return logic
 }
 
 // sendchildorderAPIへリクエストを投げ新規買い注文を行う

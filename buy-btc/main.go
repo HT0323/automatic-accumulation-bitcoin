@@ -3,7 +3,6 @@ package main
 import (
 	"buy-btc/bitflyer"
 	"fmt"
-	"math"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -25,8 +24,6 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	if err != nil {
 		return getErrorResponse(err.Error()), err
 	}
-	//購入価格
-	buyPrice := RoundDecimal(ticker.Ltp * 0.85)
 
 	apiKey, err := getParameter("buy-btc-apikey")
 	if err != nil {
@@ -38,19 +35,10 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		return getErrorResponse(err.Error()), nil
 	}
 
-	order := bitflyer.Order{
-		ProductCode:     bitflyer.Btcjpy.String(),
-		ChildOrderType:  bitflyer.Limit.String(),
-		Side:            bitflyer.Buy.String(),
-		Price:           buyPrice,
-		Size:            0.001,
-		MinuteToExpires: 4320, //3days
-		TimeInForce:     bitflyer.Gtc.String(),
-	}
-
 	client := bitflyer.NewAPIClient(apiKey, apiSecret)
+	price, size := bitflyer.GetBuyLogic(1)(5000.0, ticker)
+	orderRes, err := bitflyer.PlaceOrderWithParams(client, price, size)
 
-	orderRes, err := client.PlaceOrder(&order)
 	if err != nil {
 		return getErrorResponse(err.Error()), err
 	}
@@ -59,10 +47,6 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		Body:       fmt.Sprintf("res:%+v", orderRes),
 		StatusCode: 200,
 	}, nil
-}
-
-func RoundDecimal(num float64) float64 {
-	return math.Round(num)
 }
 
 // System Mangerからパラメータを取得
